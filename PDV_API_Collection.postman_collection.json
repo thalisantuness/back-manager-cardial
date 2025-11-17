@@ -1,0 +1,672 @@
+{
+  "info": {
+    "name": "PDV API Collection v2.0",
+    "description": "Collection atualizada para API do sistema PDV - Backend\n\nVERSÃO 2.0 - BREAKING CHANGES:\n- Removido: Agendamentos, Serviços Prestados, Produtos de Pedido\n- Pedidos agora referenciam Produtos diretamente\n- Produtos têm novos campos: menu e empresas_autorizadas",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Autenticação",
+      "item": [
+        {
+          "name": "Cadastrar Usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva\",\n  \"telefone\": \"11999999999\",\n  \"email\": \"joao@email.com\",\n  \"senha\": \"123456\",\n  \"role\": \"cliente\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/cadastrar",
+              "host": ["{{base_url}}"],
+              "path": ["cadastrar"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@email.com\",\n  \"senha\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Empresa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"empresa@teste.com\",\n  \"senha\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sistema.com\",\n  \"senha\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Usuários",
+      "item": [
+        {
+          "name": "Listar Usuários",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios"]
+            },
+            "description": "Lista usuários baseado no role do usuário logado"
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Usuário por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/usuarios/1",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar Usuário",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva Atualizado\",\n  \"telefone\": \"11888888888\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/1",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deletar Usuário",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/usuarios/1",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Produtos",
+      "item": [
+        {
+          "name": "Listar Produtos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/produtos",
+              "host": ["{{base_url}}"],
+              "path": ["produtos"],
+              "query": [
+                {
+                  "key": "menu",
+                  "value": "ecommerce",
+                  "disabled": true,
+                  "description": "Filtrar por menu: ecommerce, varejo ou ambos"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Produto por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/produtos/1",
+              "host": ["{{base_url}}"],
+              "path": ["produtos", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Criar Produto - Empresa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Smartphone Samsung\",\n  \"valor\": 1200.00,\n  \"valor_custo\": 800.00,\n  \"quantidade\": 10,\n  \"tipo_comercializacao\": \"venda\",\n  \"tipo_produto\": \"eletronico\",\n  \"menu\": \"ecommerce\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/produtos",
+              "host": ["{{base_url}}"],
+              "path": ["produtos"]
+            },
+            "description": "Empresa cadastra produto para si mesma automaticamente.\nCampo menu aceita: 'ecommerce', 'varejo' ou 'ambos'"
+          },
+          "response": []
+        },
+        {
+          "name": "Criar Produto - Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Notebook Dell\",\n  \"valor\": 3500.00,\n  \"valor_custo\": 2500.00,\n  \"quantidade\": 5,\n  \"tipo_comercializacao\": \"venda\",\n  \"tipo_produto\": \"eletronico\",\n  \"menu\": \"ambos\",\n  \"empresas_autorizadas\": [2, 16]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/produtos",
+              "host": ["{{base_url}}"],
+              "path": ["produtos"]
+            },
+            "description": "Admin pode especificar empresas_autorizadas (array de IDs de empresas).\nSe não informar, cadastra para si mesmo.\nCampo menu aceita: 'ecommerce', 'varejo' ou 'ambos'"
+          },
+          "response": []
+        },
+        {
+          "name": "Criar Produto - Com Fotos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Produto com Fotos\",\n  \"valor\": 250.00,\n  \"valor_custo\": 150.00,\n  \"quantidade\": 20,\n  \"tipo_comercializacao\": \"venda\",\n  \"tipo_produto\": \"geral\",\n  \"menu\": \"varejo\",\n  \"foto_principal\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...\",\n  \"fotos_secundarias\": [\n    \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/produtos",
+              "host": ["{{base_url}}"],
+              "path": ["produtos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar Produto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Smartphone Samsung Galaxy\",\n  \"valor\": 1300.00,\n  \"quantidade\": 15,\n  \"menu\": \"ambos\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/produtos/1",
+              "host": ["{{base_url}}"],
+              "path": ["produtos", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Adicionar Foto ao Produto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageBase64\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/produtos/1/fotos",
+              "host": ["{{base_url}}"],
+              "path": ["produtos", "1", "fotos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deletar Produto",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/produtos/1",
+              "host": ["{{base_url}}"],
+              "path": ["produtos", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pedidos",
+      "item": [
+        {
+          "name": "Listar Pedidos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/pedidos",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos"],
+              "query": [
+                {
+                  "key": "produto_id",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Filtrar por produto"
+                },
+                {
+                  "key": "cliente_id",
+                  "value": "10",
+                  "disabled": true,
+                  "description": "Filtrar por cliente"
+                },
+                {
+                  "key": "empresa_id",
+                  "value": "2",
+                  "disabled": true,
+                  "description": "Filtrar por empresa"
+                },
+                {
+                  "key": "status",
+                  "value": "pendente",
+                  "disabled": true,
+                  "description": "Filtrar por status"
+                }
+              ]
+            },
+            "description": "Lista pedidos com filtros opcionais.\nRetorna: Produto, Cliente e Empresa relacionados."
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Pedido por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/pedidos/1",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "1"]
+            },
+            "description": "Retorna pedido completo com Produto, Cliente e Empresa"
+          },
+          "response": []
+        },
+        {
+          "name": "Criar Pedido - Cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"produto_id\": 5,\n  \"empresa_id\": 2,\n  \"quantidade\": 3,\n  \"data_hora_entrega\": \"2025-10-30T14:00:00\",\n  \"observacao\": \"Entregar no período da manhã\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos"]
+            },
+            "description": "Cliente cria pedido.\ncliente_id é preenchido automaticamente pelo token.\nCampos obrigatórios: produto_id, empresa_id, data_hora_entrega"
+          },
+          "response": []
+        },
+        {
+          "name": "Criar Pedido - Empresa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"produto_id\": 5,\n  \"cliente_id\": 10,\n  \"quantidade\": 2,\n  \"data_hora_entrega\": \"2025-10-30T14:00:00\",\n  \"observacao\": \"Cliente solicitou embalagem especial\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos"]
+            },
+            "description": "Empresa cria pedido.\nempresa_id é preenchido automaticamente pelo token.\nCampos obrigatórios: produto_id, cliente_id, data_hora_entrega"
+          },
+          "response": []
+        },
+        {
+          "name": "Criar Pedido - Admin (Completo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"produto_id\": 5,\n  \"cliente_id\": 10,\n  \"empresa_id\": 2,\n  \"quantidade\": 5,\n  \"data_hora_entrega\": \"2025-10-30T14:00:00\",\n  \"status\": \"confirmado\",\n  \"observacao\": \"Pedido especial\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos"]
+            },
+            "description": "Admin pode especificar todos os campos.\nCampos obrigatórios: produto_id, cliente_id, empresa_id, data_hora_entrega"
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar Pedido",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmado\",\n  \"observacao\": \"Pedido confirmado pela empresa\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos/1",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "1"]
+            },
+            "description": "Atualiza campos do pedido.\nStatus: pendente, confirmado, em_transporte, entregue, cancelado"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar Pedido",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/pedidos/1/cancelar",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "1", "cancelar"]
+            },
+            "description": "Altera status do pedido para 'cancelado'"
+          },
+          "response": []
+        },
+        {
+          "name": "Deletar Pedido",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/pedidos/1",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Listar Conversas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/conversas",
+              "host": ["{{base_url}}"],
+              "path": ["conversas"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Criar Conversa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destinatario_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/conversas",
+              "host": ["{{base_url}}"],
+              "path": ["conversas"]
+            },
+            "description": "Cria conversa. Permissões:\n- Admin: com qualquer um\n- Empresa: com clientes\n- Cliente: com empresas"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Mensagens da Conversa",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/conversas/1/mensagens",
+              "host": ["{{base_url}}"],
+              "path": ["conversas", "1", "mensagens"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marcar Mensagem como Lida",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mensagens/1/lida",
+              "host": ["{{base_url}}"],
+              "path": ["mensagens", "1", "lida"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script para executar antes de cada request"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script para executar após cada request",
+          "// Salvar token automaticamente após login",
+          "if (pm.response.code === 200 && pm.request.url.path.includes('login')) {",
+          "    const responseJson = pm.response.json();",
+          "    if (responseJson.token) {",
+          "        pm.collectionVariables.set('auth_token', responseJson.token);",
+          "        console.log('✅ Token salvo automaticamente!');",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ]
+}
