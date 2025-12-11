@@ -51,7 +51,7 @@ sequelize
     console.error("Erro ao sincronizar modelos com o banco de dados:", error);
   });
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Servidor web iniciado na porta: ${PORT}`);
 });
