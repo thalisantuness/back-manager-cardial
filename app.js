@@ -13,14 +13,72 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Ajustar para o endereço do app React Native em produção
-    methods: ["GET", "POST"],
+    origin: function (origin, callback) {
+      // Permite requisições sem origin ou das origens permitidas
+      if (!origin) return callback(null, true);
+      
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        process.env.FRONTEND_URL,
+      ].filter(Boolean);
+      
+      if (
+        allowedOrigins.includes(origin) ||
+        process.env.NODE_ENV !== "production"
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Não permitido pelo CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
   },
 });
 
 app.use(bodyParser.urlencoded({ extended: true, limit: "900mb" }));
 app.use(bodyParser.json({ limit: "900mb" }));
-app.use(cors());
+
+// Configuração de CORS
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:5173", // Vite
+  "http://localhost:5174",
+  process.env.FRONTEND_URL, // URL do frontend em produção
+].filter(Boolean); // Remove valores undefined/null
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Permite requisições sem origin (mobile apps, Postman, etc)
+      if (!origin) return callback(null, true);
+      
+      // Permite origens na lista ou todas em desenvolvimento
+      if (
+        allowedOrigins.includes(origin) ||
+        process.env.NODE_ENV !== "production"
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Não permitido pelo CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
+  })
+);
+
 app.use("/", routes);
 
 // Middleware de autenticação Socket.IO
