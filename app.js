@@ -22,12 +22,15 @@ const io = new Server(server, {
         "http://localhost:3001",
         "http://localhost:5173",
         "http://localhost:5174",
+        "https://plataforma-manager-cardial.vercel.app",
         process.env.FRONTEND_URL,
       ].filter(Boolean);
       
+      // Verifica se está na lista ou é localhost
       if (
         allowedOrigins.includes(origin) ||
-        process.env.NODE_ENV !== "production"
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:")
       ) {
         callback(null, true);
       } else {
@@ -48,23 +51,35 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://localhost:5173", // Vite
   "http://localhost:5174",
-  process.env.FRONTEND_URL, // URL do frontend em produção
+  "https://plataforma-manager-cardial.vercel.app", // Frontend em produção
+  process.env.FRONTEND_URL, // URL do frontend em produção (variável de ambiente)
 ].filter(Boolean); // Remove valores undefined/null
+
+// Log das origens permitidas ao iniciar
+console.log("🌐 Origens CORS permitidas:", allowedOrigins);
 
 app.use(
   cors({
     origin: function (origin, callback) {
       // Permite requisições sem origin (mobile apps, Postman, etc)
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        console.log("✅ CORS: Requisição sem origin permitida");
+        return callback(null, true);
+      }
       
-      // Permite origens na lista ou todas em desenvolvimento
-      if (
-        allowedOrigins.includes(origin) ||
-        process.env.NODE_ENV !== "production"
-      ) {
+      // Verifica se a origem está na lista de permitidas
+      if (allowedOrigins.includes(origin)) {
+        console.log(`✅ CORS: Origem permitida: ${origin}`);
         callback(null, true);
       } else {
-        callback(new Error("Não permitido pelo CORS"));
+        // Em desenvolvimento, permite localhost mesmo que não esteja na lista
+        if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+          console.log(`✅ CORS: Localhost permitido: ${origin}`);
+          callback(null, true);
+        } else {
+          console.warn(`❌ CORS bloqueado para origem: ${origin}`);
+          callback(new Error("Não permitido pelo CORS"));
+        }
       }
     },
     credentials: true,
@@ -76,8 +91,13 @@ app.use(
       "Accept",
       "Origin",
     ],
+    exposedHeaders: ["Content-Range", "X-Content-Range"],
+    maxAge: 86400, // 24 horas
   })
 );
+
+// Middleware adicional para garantir que OPTIONS seja tratado corretamente
+app.options("*", cors());
 
 app.use("/", routes);
 
