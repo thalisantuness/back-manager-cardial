@@ -48,8 +48,8 @@ function VendaController() {
 
       // Valida cada item
       for (const item of itens) {
-        if (!item.produto_id || !item.quantidade || !item.preco_unitario) {
-          return res.status(400).json({ error: 'Cada item deve conter produto_id, quantidade e preco_unitario' });
+        if (!item.projeto_id || !item.quantidade || !item.preco_unitario) {
+          return res.status(400).json({ error: 'Cada item deve conter projeto_id, quantidade e preco_unitario' });
         }
         if (item.quantidade <= 0) {
           return res.status(400).json({ error: 'A quantidade deve ser maior que zero' });

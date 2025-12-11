@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 router.use(express.json());
 const authMiddleware = require("../middleware/auth");
+const optionalAuth = require("../middleware/optionalAuth");
 const chatRepository = require("../repositories/chatRepository");
 const { Usuario } = require("../model/Usuarios");
 
@@ -12,13 +13,18 @@ function validarPermissaoConversa(roleRemetente, roleDestinatario) {
     return true;
   }
   
-  // Cliente só pode conversar com empresa
-  if (roleRemetente === 'cliente' && roleDestinatario === 'empresa') {
+  // Cliente só pode conversar com empresa ou funcionário
+  if (roleRemetente === 'cliente' && (roleDestinatario === 'empresa' || roleDestinatario === 'empresa-funcionario')) {
     return true;
   }
   
   // Empresa só pode conversar com cliente
   if (roleRemetente === 'empresa' && roleDestinatario === 'cliente') {
+    return true;
+  }
+  
+  // Funcionário só pode conversar com cliente
+  if (roleRemetente === 'empresa-funcionario' && roleDestinatario === 'cliente') {
     return true;
   }
   
@@ -30,10 +36,12 @@ const UsuarioController = require("../controllers/usuariosController");
 const usuariosController = UsuarioController();
 const ChatController = require("../controllers/chatController");
 const chatController = ChatController();
-const ProdutoController = require("../controllers/produtoController");
-const produtoController = ProdutoController();
+const ProjetoController = require("../controllers/projetoController");
+const projetoController = ProjetoController();
 const PedidoController = require("../controllers/pedidoController");
 const pedidoController = PedidoController();
+const FaturamentoController = require("../controllers/faturamentoController");
+const faturamentoController = FaturamentoController();
 
 router.post("/cadastrar", usuariosController.cadastrar);
 router.post("/login", usuariosController.logar);
@@ -45,12 +53,16 @@ router.patch("/usuarios/:id/senha", authMiddleware, usuariosController.alterarSe
 router.patch("/usuarios/:id/foto", authMiddleware, usuariosController.atualizarFotoPerfil);
 router.delete("/usuarios/:id", usuariosController.deletar);
 
-router.get("/produtos", produtoController.listar);
-router.get("/produtos/:id", produtoController.buscarPorId);
-router.post("/produtos", authMiddleware, produtoController.criar);
-router.put("/produtos/:id", authMiddleware, produtoController.atualizar);
-router.delete("/produtos/:id", produtoController.deletar);
-router.post("/produtos/:id/fotos", produtoController.adicionarFoto);
+// GET /projetos usa autenticação OPCIONAL:
+// - Sem token ou com role cliente/admin -> marketplace (todos os projetos)
+// - Com role empresa/empresa-funcionario -> filtrado pela empresa correta
+router.get("/projetos", optionalAuth, projetoController.listar);
+router.get("/projetos/:id", projetoController.buscarPorId);
+router.post("/projetos", authMiddleware, projetoController.criar);
+router.put("/projetos/:id", authMiddleware, projetoController.atualizar);
+router.delete("/projetos/:id/fotos/:fotoId", authMiddleware, projetoController.deletarFoto);
+router.delete("/projetos/:id", projetoController.deletar);
+router.post("/projetos/:id/fotos", authMiddleware, projetoController.adicionarFoto);
 
 // Pedidos
 router.get("/pedidos", authMiddleware, pedidoController.listar);
@@ -59,6 +71,9 @@ router.get("/pedidos/:id", authMiddleware, pedidoController.buscarPorId);
 router.put("/pedidos/:id", authMiddleware, pedidoController.atualizar);
 router.put("/pedidos/:id/cancelar", authMiddleware, pedidoController.cancelar);
 router.delete("/pedidos/:id", authMiddleware, pedidoController.excluir);
+
+// Gráfico de Faturamentos
+router.get("/grafico-faturamentos", authMiddleware, faturamentoController.getGraficoFaturamentos);
 
 // Rotas de Chat
 router.get("/conversas", authMiddleware, chatController.listarConversas);
@@ -90,10 +105,30 @@ router.post("/conversas", authMiddleware, async (req, res) => {
       });
     }
 
-    // Criar ou recuperar conversa
+    // Normalizar conversa: cliente sempre usuario1, empresa pai sempre usuario2
+    let usuario1_id, usuario2_id;
+    
+    if (req.user.role === 'cliente') {
+      // Cliente iniciando conversa: normalizar para empresa pai
+      const normalizada = await chatRepository.normalizarConversa(usuario_id, destinatario_id);
+      usuario1_id = normalizada.usuario1_id;
+      usuario2_id = normalizada.usuario2_id;
+    } else if (req.user.role === 'empresa' || req.user.role === 'empresa-funcionario') {
+      // Empresa/funcionário iniciando conversa: normalizar para empresa pai como usuario2
+      const empresaPaiId = await chatRepository.buscarEmpresaPaiId(usuario_id);
+      if (!empresaPaiId) {
+        return res.status(400).json({ error: "Empresa não encontrada" });
+      }
+      usuario1_id = destinatario_id; // Cliente sempre usuario1
+      usuario2_id = empresaPaiId; // Empresa pai sempre usuario2
+    } else {
+      return res.status(403).json({ error: "Apenas clientes, empresas e funcionários podem criar conversas" });
+    }
+
+    // Criar ou recuperar conversa normalizada
     const conversa = await chatRepository.criarConversaSeNaoExistir(
-      usuario_id,
-      destinatario_id
+      usuario1_id,
+      usuario2_id
     );
 
     // Buscar detalhes dos participantes

@@ -1,11 +1,12 @@
 const { Sequelize } = require("sequelize");
 const sequelize = require("../utils/db");
+const { Usuario } = require("./Usuarios");
 
 
-const Produto = sequelize.define(
-  "Produto",
+const Projeto = sequelize.define(
+  "Projeto",
   {
-    produto_id: {
+    projeto_id: {
       type: Sequelize.INTEGER,
       primaryKey: true,
       autoIncrement: true,
@@ -34,9 +35,13 @@ const Produto = sequelize.define(
       type: Sequelize.STRING,
       allowNull: false,
     },
-    menu: {
-      type: Sequelize.STRING,
-      allowNull: true,
+    empresa_id: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      references: {
+        model: "usuarios",
+        key: "usuario_id",
+      },
     },
     empresas_autorizadas: {
       type: Sequelize.ARRAY(Sequelize.INTEGER),
@@ -66,16 +71,14 @@ const Produto = sequelize.define(
   },
   {
     schema: "public",
-    tableName: "produtos",
+    tableName: "projetos",
     timestamps: false,
   }
 );
 
-// Produto.belongsTo(Estado, {
-//   foreignKey: "estado_id",
-//   as: "estado",
-// });
+// Associação com Empresa (Usuario)
+Projeto.belongsTo(Usuario, { foreignKey: "empresa_id", as: "Empresa" });
 
-module.exports = { Produto };
+module.exports = { Projeto };
 
 

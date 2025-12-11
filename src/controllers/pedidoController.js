@@ -3,12 +3,38 @@ const repo = require("../repositories/pedidoRepository");
 function PedidoController() {
   async function listar(req, res) {
     try {
-      const { produto_id, cliente_id, empresa_id, status } = req.query;
+      const { Op } = require('sequelize');
+      const usuariosRepo = require('../repositories/usuariosRepository');
+      const { projeto_id, cliente_id, empresa_id, status } = req.query;
       const filtros = {};
-      if (produto_id) filtros.produto_id = produto_id;
+      if (projeto_id) filtros.projeto_id = projeto_id;
       if (cliente_id) filtros.cliente_id = cliente_id;
       if (empresa_id) filtros.empresa_id = empresa_id;
       if (status) filtros.status = status;
+      
+      // Lógica de filtragem baseada no role
+      if (req.user) {
+        if (req.user.role === 'empresa') {
+          // Empresa vê seus pedidos + pedidos de todas as empresas filhas (recursivamente)
+          const idsEmpresas = await usuariosRepo.buscarIdsEmpresasFilhas(req.user.usuario_id);
+          filtros.empresa_id = { [Op.in]: idsEmpresas };
+        } else if (req.user.role === 'empresa-funcionario') {
+          // Funcionário vê pedidos da empresa pai + pedidos de todas as empresas filhas
+          const funcionario = await usuariosRepo.buscarUsuarioPorId(req.user.usuario_id);
+          if (funcionario && funcionario.empresa_pai_id) {
+            const idsEmpresas = await usuariosRepo.buscarIdsEmpresasFilhas(funcionario.empresa_pai_id);
+            filtros.empresa_id = { [Op.in]: idsEmpresas };
+          } else {
+            // Se não tem empresa_pai_id, retornar vazio
+            return res.json([]);
+          }
+        } else if (req.user.role === 'cliente') {
+          // Cliente vê apenas seus próprios pedidos
+          filtros.cliente_id = req.user.usuario_id;
+        }
+        // Admin vê todos os pedidos - não filtra
+      }
+      
       const itens = await repo.listarPedidos(filtros);
       res.json(itens);
     } catch (error) {
@@ -18,7 +44,7 @@ function PedidoController() {
 
   async function criar(req, res) {
     try {
-      const { produto_id, cliente_id, empresa_id, quantidade, data_hora_entrega, status, observacao } = req.body;
+      const { projeto_id, cliente_id, empresa_id, quantidade, data_hora_entrega, status, observacao } = req.body;
       
       // Validar autenticação
       if (!req.user) {
@@ -26,11 +52,12 @@ function PedidoController() {
       }
 
       // Validar campos obrigatórios básicos
-      if (!produto_id || !data_hora_entrega) {
-        return res.status(400).json({ error: 'produto_id e data_hora_entrega são obrigatórios' });
+      if (!projeto_id) {
+        return res.status(400).json({ error: 'projeto_id é obrigatório' });
       }
       
       // Determinar cliente_id e empresa_id baseado no role
+      // data_hora_entrega é opcional (pode ser null para clientes)
       let clienteIdFinal = cliente_id;
       let empresaIdFinal = empresa_id;
       
@@ -46,6 +73,16 @@ function PedidoController() {
         if (!cliente_id) {
           return res.status(400).json({ error: 'cliente_id é obrigatório para empresas' });
         }
+      } else if (req.user.role === 'empresa-funcionario') {
+        // Funcionário: usa empresa_pai_id, cliente_id deve vir do body
+        const funcionario = await require('../repositories/usuariosRepository').buscarUsuarioPorId(req.user.usuario_id);
+        if (!funcionario || !funcionario.empresa_pai_id) {
+          return res.status(403).json({ error: 'Funcionário não vinculado a uma empresa' });
+        }
+        empresaIdFinal = funcionario.empresa_pai_id;
+        if (!cliente_id) {
+          return res.status(400).json({ error: 'cliente_id é obrigatório para funcionários' });
+        }
       } else if (req.user.role === 'admin') {
         // Admin: pode especificar ambos ou usar seu próprio ID
         clienteIdFinal = cliente_id || req.user.usuario_id;
@@ -57,7 +94,7 @@ function PedidoController() {
       }
       
       const payload = { 
-        produto_id, 
+        projeto_id, 
         cliente_id: clienteIdFinal, 
         empresa_id: empresaIdFinal, 
         quantidade,

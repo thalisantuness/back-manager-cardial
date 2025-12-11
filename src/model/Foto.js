@@ -1,6 +1,6 @@
 const { Sequelize } = require("sequelize");
 const sequelize = require("../utils/db");
-const { Produto } = require("./Produto");
+const { Projeto } = require("./Projeto");
 
 const Foto = sequelize.define(
   "Foto",
@@ -10,12 +10,12 @@ const Foto = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    produto_id: {
+    projeto_id: {
       type: Sequelize.INTEGER,
       allowNull: false,
       references: {
-        model: Produto,
-        key: "produto_id",
+        model: Projeto,
+        key: "projeto_id",
       },
     },
     imageData: {
@@ -33,13 +33,13 @@ const Foto = sequelize.define(
   },
   {
     schema: "public",
-    tableName: "produto_foto",
+    tableName: "projeto_foto",
     timestamps: false,
   }
 );
 
-Foto.belongsTo(Produto, { foreignKey: "produto_id", as: "produto" });
-Produto.hasMany(Foto, { foreignKey: "produto_id", as: "fotos" });
+Foto.belongsTo(Projeto, { foreignKey: "projeto_id", as: "projeto" });
+Projeto.hasMany(Foto, { foreignKey: "projeto_id", as: "fotos" });
 
 module.exports = { Foto };
 

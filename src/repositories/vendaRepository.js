@@ -1,6 +1,7 @@
 const { Venda, ItemVenda } = require('../model/Venda');
-const { Produto } = require('../model/Produto');
+const { Projeto } = require('../model/Projeto');
 const { Usuario } = require('../model/Usuarios');
+const sequelize = require('../utils/db');
 
 async function listarVendas() {
   return await Venda.findAll({
@@ -14,9 +15,9 @@ async function listarVendas() {
         model: ItemVenda,
         as: 'itens',
         include: [{
-          model: Produto,
-          as: 'produto',
-          attributes: ['produto_id', 'nome']
+          model: Projeto,
+          as: 'projeto',
+          attributes: ['projeto_id', 'nome']
         }]
       }
     ],
@@ -36,9 +37,9 @@ async function buscarVendaPorId(id) {
         model: ItemVenda,
         as: 'itens',
         include: [{
-          model: Produto,
-          as: 'produto',
-          attributes: ['produto_id', 'nome', 'preco']
+          model: Projeto,
+          as: 'projeto',
+          attributes: ['projeto_id', 'nome', 'valor']
         }]
       }
     ]
@@ -71,24 +72,24 @@ async function criarVenda(dadosVenda) {
 
     // Cria os itens da venda
     const itensCriados = await Promise.all(itens.map(async (item) => {
-      const produto = await Produto.findByPk(item.produto_id, { transaction });
+      const projeto = await Projeto.findByPk(item.projeto_id, { transaction });
       
-      if (!produto) {
-        throw new Error(`Produto com ID ${item.produto_id} não encontrado`);
+      if (!projeto) {
+        throw new Error(`Projeto com ID ${item.projeto_id} não encontrado`);
       }
 
-      if (produto.quantidade < item.quantidade) {
-        throw new Error(`Quantidade insuficiente em estoque para o produto ${produto.nome}`);
+      if (projeto.quantidade < item.quantidade) {
+        throw new Error(`Quantidade insuficiente em estoque para o projeto ${projeto.nome}`);
       }
 
-      // Atualiza o estoque do produto
-      await produto.update({
-        quantidade: produto.quantidade - item.quantidade
+      // Atualiza o estoque do projeto
+      await projeto.update({
+        quantidade: projeto.quantidade - item.quantidade
       }, { transaction });
 
       return await ItemVenda.create({
         venda_id: venda.venda_id,
-        produto_id: item.produto_id,
+        projeto_id: item.projeto_id,
         quantidade: item.quantidade,
         preco_unitario: item.preco_unitario,
         subtotal: item.preco_unitario * item.quantidade
@@ -127,11 +128,11 @@ async function cancelarVenda(id) {
       throw new Error('Venda já está cancelada');
     }
 
-    // Devolve os produtos ao estoque
+    // Devolve os projetos ao estoque
     await Promise.all(venda.itens.map(async (item) => {
-      const produto = await Produto.findByPk(item.produto_id, { transaction });
-      await produto.update({
-        quantidade: produto.quantidade + item.quantidade
+      const projeto = await Projeto.findByPk(item.projeto_id, { transaction });
+      await projeto.update({
+        quantidade: projeto.quantidade + item.quantidade
       }, { transaction });
     }));
 

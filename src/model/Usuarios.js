@@ -10,7 +10,7 @@ const Usuario = sequelize.define(
       autoIncrement: true,
     },
     role: {
-      type: Sequelize.STRING,
+      type: Sequelize.STRING, 
       allowNull: false,
     },
     nome: {
@@ -33,6 +33,18 @@ const Usuario = sequelize.define(
     foto_perfil: {
       type: Sequelize.TEXT,  // Igual produtos: TEXT ilimitado pra links S3
       allowNull: true,
+    },
+    cliente_endereco: {
+      type: Sequelize.TEXT,
+      allowNull: true,
+    },
+    empresa_pai_id: {
+      type: Sequelize.INTEGER,
+      allowNull: true,
+      references: {
+        model: "usuarios",
+        key: "usuario_id",
+      },
     },
     data_cadastro: {
       type: Sequelize.DATE,

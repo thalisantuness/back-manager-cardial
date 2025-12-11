@@ -1,50 +1,108 @@
 const { Pedido } = require("../model/Pedido");
 const { Usuario } = require("../model/Usuarios");
-const { Produto } = require("../model/Produto");
+const { Projeto } = require("../model/Projeto");
 
 async function listarPedidos(filtros = {}) {
-  return Pedido.findAll({
+  const pedidos = await Pedido.findAll({
     where: filtros,
     include: [
-      { association: "Produto", attributes: ["produto_id", "nome", "valor", "foto_principal", "menu"] },
-      { association: "Cliente", attributes: ["usuario_id", "nome", "email", "role", "telefone"] },
-      { association: "Empresa", attributes: ["usuario_id", "nome", "email", "role", "telefone"] }
+      { 
+        association: "Projeto", 
+        attributes: ["projeto_id", "nome", "valor", "foto_principal", "empresa_id"],
+        required: false  // LEFT JOIN - permite pedidos sem projeto
+      },
+      { 
+        association: "Cliente", 
+        attributes: ["usuario_id", "nome", "email", "role", "telefone", "cliente_endereco"],
+        required: false
+      },
+      { 
+        association: "Empresa", 
+        attributes: ["usuario_id", "nome", "email", "role", "telefone"],
+        required: false
+      }
     ],
     order: [["data_cadastro", "DESC"]],
+  });
+
+  // Formatar resposta para garantir que campos null não quebrem o frontend
+  return pedidos.map(pedido => {
+    const pedidoData = pedido.toJSON();
+    
+    // Se Projeto for null, adicionar objeto vazio para evitar erro no frontend
+    if (!pedidoData.Projeto) {
+      pedidoData.Projeto = {
+        projeto_id: pedidoData.projeto_id,
+        nome: "Projeto removido",
+        valor: 0,
+        foto_principal: null,
+        empresa_id: null
+      };
+    }
+
+    return pedidoData;
   });
 }
 
 async function buscarPedidoPorId(id) {
   const pedido = await Pedido.findByPk(id, { 
     include: [
-      { association: "Produto", attributes: ["produto_id", "nome", "valor", "foto_principal", "menu"] },
-      { association: "Cliente", attributes: ["usuario_id", "nome", "email", "role", "telefone"] },
-      { association: "Empresa", attributes: ["usuario_id", "nome", "email", "role", "telefone"] }
+      { 
+        association: "Projeto", 
+        attributes: ["projeto_id", "nome", "valor", "foto_principal", "empresa_id"],
+        required: false
+      },
+      { 
+        association: "Cliente", 
+        attributes: ["usuario_id", "nome", "email", "role", "telefone", "cliente_endereco"],
+        required: false
+      },
+      { 
+        association: "Empresa", 
+        attributes: ["usuario_id", "nome", "email", "role", "telefone"],
+        required: false
+      }
     ] 
   });
   if (!pedido) throw new Error("Pedido não encontrado");
-  return pedido;
+  
+  const pedidoData = pedido.toJSON();
+  
+  // Se Projeto for null, adicionar objeto vazio para evitar erro no frontend
+  if (!pedidoData.Projeto) {
+      pedidoData.Projeto = {
+        projeto_id: pedidoData.projeto_id,
+        nome: "Projeto removido",
+        valor: 0,
+        foto_principal: null,
+        empresa_id: null
+      };
+  }
+  
+  return pedidoData;
 }
 
 async function criarPedido(payload) {
-  const { produto_id, cliente_id, empresa_id, quantidade, data_hora_entrega, status, observacao } = payload;
+  const { projeto_id, cliente_id, empresa_id, quantidade, data_hora_entrega, status, observacao } = payload;
   
-  if (!produto_id || !cliente_id || !empresa_id || !data_hora_entrega) {
-    throw new Error("'produto_id', 'cliente_id', 'empresa_id' e 'data_hora_entrega' são obrigatórios");
+  if (!projeto_id || !cliente_id || !empresa_id) {
+    throw new Error("'projeto_id', 'cliente_id' e 'empresa_id' são obrigatórios");
+  }
+  
+  // data_hora_entrega é opcional (pode ser null)
+
+  // Validar se projeto existe
+  const projeto = await Projeto.findByPk(projeto_id);
+  if (!projeto) {
+    throw new Error("Projeto não encontrado");
   }
 
-  // Validar se produto existe
-  const produto = await Produto.findByPk(produto_id);
-  if (!produto) {
-    throw new Error("Produto não encontrado");
-  }
-
-  // Validar se empresa está autorizada a usar este produto
-  if (produto.empresas_autorizadas && produto.empresas_autorizadas.length > 0) {
-    if (!produto.empresas_autorizadas.includes(empresa_id)) {
-      throw new Error("Empresa não autorizada a usar este produto");
-    }
-  }
+  // Validação de empresas_autorizadas desativada temporariamente
+  // if (projeto.empresas_autorizadas && projeto.empresas_autorizadas.length > 0) {
+  //   if (!projeto.empresas_autorizadas.includes(empresa_id)) {
+  //     throw new Error("Empresa não autorizada a usar este projeto");
+  //   }
+  // }
 
   // Validar se cliente existe
   const cliente = await Usuario.findByPk(cliente_id);
@@ -59,7 +117,7 @@ async function criarPedido(payload) {
   }
 
   return Pedido.create({ 
-    produto_id,
+    projeto_id,
     cliente_id,
     empresa_id,
     quantidade: quantidade || 1,
@@ -70,23 +128,57 @@ async function criarPedido(payload) {
 }
 
 async function atualizarPedido(id, dados) {
-  const pedido = await buscarPedidoPorId(id);
+  // Buscar pedido como instância do Sequelize (sem .toJSON())
+  const pedido = await Pedido.findByPk(id, {
+    include: [
+      { 
+        association: "Projeto", 
+        attributes: ["projeto_id", "nome", "valor", "foto_principal", "empresa_id"],
+        required: false
+      },
+      { 
+        association: "Cliente", 
+        attributes: ["usuario_id", "nome", "email", "role", "telefone", "cliente_endereco"],
+        required: false
+      },
+      { 
+        association: "Empresa", 
+        attributes: ["usuario_id", "nome", "email", "role", "telefone"],
+        required: false
+      }
+    ]
+  });
+
+  if (!pedido) {
+    throw new Error("Pedido não encontrado");
+  }
 
   // Validação adicional: Se alterando cliente, checar permissão (ex: admin)
   if (dados.cliente_id && dados.cliente_id !== pedido.cliente_id) {
     // Exemplo: throw new Error("Não autorizado a alterar cliente do pedido");
   }
 
-  return pedido.update(dados);
+  await pedido.update(dados);
+  
+  // Retornar pedido atualizado formatado
+  return buscarPedidoPorId(id);
 }
 
 async function cancelarPedido(id) {
-  const pedido = await buscarPedidoPorId(id);
-  return pedido.update({ status: "cancelado" });
+  const pedido = await Pedido.findByPk(id);
+  if (!pedido) {
+    throw new Error("Pedido não encontrado");
+  }
+  
+  await pedido.update({ status: "cancelado" });
+  return buscarPedidoPorId(id);
 }
 
 async function deletarPedido(id) {
-  const pedido = await buscarPedidoPorId(id);
+  const pedido = await Pedido.findByPk(id);
+  if (!pedido) {
+    throw new Error("Pedido não encontrado");
+  }
   return pedido.destroy();
 }
 

@@ -1,6 +1,6 @@
 const { Sequelize } = require("sequelize");
 const sequelize = require("../utils/db");
-const { Produto } = require("./Produto");
+const { Projeto } = require("./Projeto");
 const { Usuario } = require("./Usuarios");  // Para associação com Cliente
 
 const Pedido = sequelize.define(
@@ -11,10 +11,10 @@ const Pedido = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    produto_id: {
+    projeto_id: {
       type: Sequelize.INTEGER,
       allowNull: false,
-      references: { model: "produtos", key: "produto_id" },
+      references: { model: "projetos", key: "projeto_id" },
     },
     quantidade: {
       type: Sequelize.INTEGER,
@@ -33,7 +33,7 @@ const Pedido = sequelize.define(
     },
     data_hora_entrega: {
       type: Sequelize.DATE,
-      allowNull: false,
+      allowNull: true,  // Opcional - cliente pode comprar sem definir data de entrega
     },
     status: {
       type: Sequelize.ENUM("pendente", "confirmado", "em_transporte", "entregue", "cancelado"),
@@ -61,7 +61,7 @@ const Pedido = sequelize.define(
 );
 
 // Associações
-Pedido.belongsTo(Produto, { foreignKey: "produto_id", as: "Produto" });
+Pedido.belongsTo(Projeto, { foreignKey: "projeto_id", as: "Projeto" });
 Pedido.belongsTo(Usuario, { foreignKey: "cliente_id", as: "Cliente" });
 Pedido.belongsTo(Usuario, { foreignKey: "empresa_id", as: "Empresa" });
 
