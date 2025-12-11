@@ -13,14 +13,47 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Ajustar para o endereço do app React Native em produção
-    methods: ["GET", "POST"],
+    origin: [
+      "http://localhost:3000",
+      "https://plataforma-manager-cardial.vercel.app",
+      /^https:\/\/.*\.vercel\.app$/,
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
   },
 });
 
 app.use(bodyParser.urlencoded({ extended: true, limit: "900mb" }));
 app.use(bodyParser.json({ limit: "900mb" }));
-app.use(cors());
+
+// Configuração de CORS
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", // Desenvolvimento
+      "https://plataforma-manager-cardial.vercel.app", // Produção
+      /^https:\/\/.*\.vercel\.app$/, // Permite todos os subdomínios Vercel
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
+  })
+);
+
+// Tratamento explícito de requisições OPTIONS (preflight)
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.sendStatus(200);
+});
 
 app.use("/", routes);
 
