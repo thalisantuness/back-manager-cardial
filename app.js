@@ -9,6 +9,8 @@ const jwt = require("jsonwebtoken");
 const authConfig = require("./src/config/auth.json");
 const ChatSocketController = require("./src/controllers/chatSocketController");
 
+console.log("🚀 Iniciando servidor...");
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -23,28 +25,17 @@ const io = new Server(server, {
   },
 });
 
+console.log("✅ Express e Socket.IO configurados");
+
 // Middleware de logging de requisições
 app.use((req, res, next) => {
   console.log(`📨 ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'}`);
   next();
 });
 
-// Configuração do body parser com tratamento de erros
+// Configuração do body parser
 app.use(bodyParser.urlencoded({ extended: true, limit: "900mb" }));
 app.use(bodyParser.json({ limit: "900mb" }));
-
-// Middleware para capturar erros do bodyParser
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    console.error('❌ Erro ao parsear JSON:', err.message);
-    return res.status(400).json({ error: 'JSON inválido', details: err.message });
-  }
-  if (err.type === 'entity.too.large') {
-    console.error('❌ Payload muito grande');
-    return res.status(413).json({ error: 'Payload muito grande' });
-  }
-  next(err);
-});
 
 // Configuração de CORS - Mais permissiva para debug
 app.use(
@@ -93,10 +84,29 @@ app.options("*", (req, res) => {
   res.sendStatus(200);
 });
 
-app.use("/", routes);
+// Rotas
+console.log("🛣️ Carregando rotas...");
+try {
+  app.use("/", routes);
+  console.log("✅ Rotas carregadas");
+} catch (error) {
+  console.error("❌ Erro ao carregar rotas:", error);
+  throw error; // Rotas são críticas, então re-throw
+}
 
-// Middleware de tratamento de erros global
+// Middleware de tratamento de erros - DEVE SER APÓS AS ROTAS
 app.use((err, req, res, next) => {
+  // Erro do body parser
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('❌ Erro ao parsear JSON:', err.message);
+    return res.status(400).json({ error: 'JSON inválido', details: err.message });
+  }
+  if (err.type === 'entity.too.large') {
+    console.error('❌ Payload muito grande');
+    return res.status(413).json({ error: 'Payload muito grande' });
+  }
+  
+  // Outros erros
   console.error("💥 Erro não tratado:", err);
   console.error("Stack trace:", err.stack);
   res.status(500).json({
@@ -122,19 +132,49 @@ io.use((socket, next) => {
 });
 
 // Passar a instância do io para o ChatSocketController
-const chatSocketController = ChatSocketController(io);
-io.on("connection", chatSocketController.handleSocketConnection);
+try {
+  console.log("📡 Configurando Chat Socket Controller...");
+  const chatSocketController = ChatSocketController(io);
+  io.on("connection", chatSocketController.handleSocketConnection);
+  console.log("✅ Chat Socket Controller configurado");
+} catch (error) {
+  console.error("❌ Erro ao configurar Chat Socket Controller:", error);
+  console.error("⚠️ Continuando sem chat em tempo real...");
+}
 
+// Sincronizar com o banco de dados
+console.log("📊 Sincronizando com banco de dados...");
 sequelize
   .sync({ force: false }) // Não dropar tabelas
   .then(() => {
-    console.log("Modelos sincronizados com o banco de dados");
+    console.log("✅ Modelos sincronizados com o banco de dados");
   })
   .catch((error) => {
-    console.error("Erro ao sincronizar modelos com o banco de dados:", error);
+    console.error("❌ Erro ao sincronizar modelos com o banco de dados:", error);
+    // NÃO BLOQUEIA o servidor mesmo se o banco falhar
   });
 
 const PORT = process.env.PORT || 4000;
+
+// Iniciar servidor
 server.listen(PORT, () => {
-  console.log(`Servidor web iniciado na porta: ${PORT}`);
+  console.log(`✅ Servidor web iniciado na porta: ${PORT}`);
+  console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 URL: http://localhost:${PORT}`);
+}).on('error', (error) => {
+  console.error("❌ Erro ao iniciar servidor:", error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Porta ${PORT} já está em uso`);
+  }
+  process.exit(1);
+});
+
+// Tratamento de erros não capturados
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
 });

@@ -4,8 +4,9 @@
   "description": "Servidor da Cardial",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "node test-server.js"
   },
   "author": "Cardial iT - Thalis Antunes",
   "license": "ISC",
