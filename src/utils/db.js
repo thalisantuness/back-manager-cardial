@@ -28,13 +28,16 @@ const sequelize = new Sequelize(
   }
 );
 
+// Authenticate assíncrono - não bloqueia o módulo
+console.log("🔌 Tentando conectar ao banco de dados...");
 sequelize
   .authenticate()
   .then(() => {
-    console.log("Conexão com o banco de dados estabelecida com sucesso!");
+    console.log("✅ Conexão com o banco de dados estabelecida com sucesso!");
   })
   .catch((error) => {
-    console.error("Erro ao conectar com o banco de dados:", error);
+    console.error("❌ Erro ao conectar com o banco de dados:", error);
+    console.error("⚠️ Aplicação continua rodando, mas operações de banco falharão");
   });
 
 module.exports = sequelize;
