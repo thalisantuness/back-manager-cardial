@@ -6,6 +6,17 @@ const optionalAuth = require("../middleware/optionalAuth");
 const chatRepository = require("../repositories/chatRepository");
 const { Usuario } = require("../model/Usuarios");
 
+// Rota de healthcheck
+router.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Rota de teste para verificar se o servidor está recebendo POST
+router.post("/test", (req, res) => {
+  console.log("📝 Teste POST recebido:", req.body);
+  res.status(200).json({ message: "POST funcionando", body: req.body });
+});
+
 // Função para validar permissões de conversa
 function validarPermissaoConversa(roleRemetente, roleDestinatario) {
   // Admin pode conversar com qualquer um

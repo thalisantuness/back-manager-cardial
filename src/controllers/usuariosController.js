@@ -7,10 +7,21 @@ const { Sequelize, Op } = require("sequelize");
 function UsuarioController() {
   async function cadastrar(req, res) {
     try {
+      console.log("📝 Iniciando cadastro de usuário...");
+      console.log("📦 Body recebido:", {
+        nome: req.body.nome,
+        email: req.body.email,
+        role: req.body.role,
+        telefone: req.body.telefone,
+        tem_foto: !!req.body.foto_perfil,
+        tamanho_foto: req.body.foto_perfil ? req.body.foto_perfil.length : 0
+      });
+
       const { nome, telefone, email, senha, role, foto_perfil, cliente_endereco, empresa_pai_id } = req.body;
 
       // Validações básicas
       if (!nome || !telefone || !email || !senha || !role) {
+        console.log("❌ Validação falhou - campos obrigatórios ausentes");
         return res.status(400).json({ 
           error: "Nome, telefone, email, senha e role são obrigatórios" 
         });
@@ -24,10 +35,13 @@ function UsuarioController() {
       }
 
       // Verificar se o email já existe
+      console.log("🔍 Verificando se email já existe...");
       const usuarioExistente = await usuariosRepository.buscarUsuarioPorEmail(email);
       if (usuarioExistente) {
+        console.log("❌ Email já cadastrado");
         return res.status(400).json({ error: "Email já cadastrado" });
       }
+      console.log("✅ Email disponível");
 
       // Validar formato do telefone (10 ou 11 dígitos)
       const telefoneLimpo = telefone.replace(/\D/g, '');
@@ -60,6 +74,7 @@ function UsuarioController() {
       }
 
       // Criar usuário - repo valida/comprime/upload e salva link
+      console.log("💾 Criando usuário no banco de dados...");
       const usuarioCriado = await usuariosRepository.criarUsuario({
         usuario: {
           nome,
@@ -73,15 +88,19 @@ function UsuarioController() {
         fotoPerfilBase64: foto_perfil
       });
 
+      console.log("✅ Usuário criado com sucesso:", usuarioCriado.usuario_id);
+
       const usuarioRetorno = usuarioCriado.toJSON();
       delete usuarioRetorno.senha;
 
+      console.log("📤 Enviando resposta ao cliente...");
       res.status(201).json({
         message: "Usuário cadastrado com sucesso",
         usuario: usuarioRetorno  // foto_perfil: link S3
       });
     } catch (error) {
-      console.error("Erro no cadastro:", error);
+      console.error("❌ Erro no cadastro:", error);
+      console.error("Stack trace:", error.stack);
       res.status(500).json({
         error: "Erro ao cadastrar usuário",
         details: error.message  // Ex: "Erro ao processar imagem" se base64 inválido
