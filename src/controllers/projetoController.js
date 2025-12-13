@@ -137,12 +137,53 @@ function ProjetoController() {
   async function buscarPorId(req, res) {
     try {
       const { id } = req.params;
-      const projeto = await projetoRepo.buscarProjetoPorId(id);
-      if (!projeto) return res.status(404).json({ error: 'Projeto não encontrado' });
+      
+      // Log detalhado para debug
+      console.log('🔍 [GET /projetos/:id] Buscando projeto:', {
+        id: id,
+        idType: typeof id,
+        params: req.params,
+        url: req.url,
+        originalUrl: req.originalUrl
+      });
+      
+      // Validar se o ID foi fornecido
+      if (!id || id === 'undefined' || id === 'null') {
+        console.error('❌ [GET /projetos/:id] ID inválido ou não fornecido');
+        return res.status(400).json({ 
+          error: 'ID do projeto é obrigatório',
+          received: id,
+          hint: 'Verifique se o ID está sendo passado corretamente na URL'
+        });
+      }
+      
+      // Validar se o ID é numérico
+      const idNumero = parseInt(id, 10);
+      if (isNaN(idNumero)) {
+        console.error('❌ [GET /projetos/:id] ID não é um número válido:', id);
+        return res.status(400).json({ 
+          error: 'ID do projeto deve ser um número válido',
+          received: id
+        });
+      }
+      
+      console.log('📊 [GET /projetos/:id] Buscando projeto com ID numérico:', idNumero);
+      const projeto = await projetoRepo.buscarProjetoPorId(idNumero);
+      
+      if (!projeto) {
+        console.log('⚠️ [GET /projetos/:id] Projeto não encontrado para ID:', idNumero);
+        return res.status(404).json({ error: 'Projeto não encontrado' });
+      }
+      
+      console.log('✅ [GET /projetos/:id] Projeto encontrado:', projeto.projeto_id);
       res.json(projeto);
     } catch (e) {
-      console.error('Erro ao buscar projeto:', e);
-      res.status(500).json({ error: 'Erro ao buscar projeto' });
+      console.error('❌ [GET /projetos/:id] Erro ao buscar projeto:', e);
+      console.error('Stack trace:', e.stack);
+      res.status(500).json({ 
+        error: 'Erro ao buscar projeto',
+        message: e.message 
+      });
     }
   }
 
@@ -246,6 +287,35 @@ function ProjetoController() {
   async function atualizar(req, res) {
     try {
       const { id } = req.params;
+      
+      // Log detalhado para debug
+      console.log('✏️ [PUT /projetos/:id] Atualizando projeto:', {
+        id: id,
+        idType: typeof id,
+        params: req.params,
+        url: req.url
+      });
+      
+      // Validar se o ID foi fornecido
+      if (!id || id === 'undefined' || id === 'null') {
+        console.error('❌ [PUT /projetos/:id] ID inválido ou não fornecido');
+        return res.status(400).json({ 
+          error: 'ID do projeto é obrigatório',
+          received: id,
+          hint: 'Verifique se o ID está sendo passado corretamente na URL'
+        });
+      }
+      
+      // Validar se o ID é numérico
+      const idNumero = parseInt(id, 10);
+      if (isNaN(idNumero)) {
+        console.error('❌ [PUT /projetos/:id] ID não é um número válido:', id);
+        return res.status(400).json({ 
+          error: 'ID do projeto deve ser um número válido',
+          received: id
+        });
+      }
+      
       const dados = { ...req.body };
 
       // Processar foto_principal se for base64 (converter para S3)
@@ -301,7 +371,9 @@ function ProjetoController() {
       //   }
       // }
 
-      const projeto = await projetoRepo.atualizarProjeto(id, dados);
+      console.log('💾 [PUT /projetos/:id] Atualizando projeto com ID:', idNumero);
+      const projeto = await projetoRepo.atualizarProjeto(idNumero, dados);
+      console.log('✅ [PUT /projetos/:id] Projeto atualizado com sucesso');
       res.json(projeto);
     } catch (e) {
       console.error('Erro ao atualizar projeto:', e);
@@ -312,7 +384,17 @@ function ProjetoController() {
   async function deletar(req, res) {
     try {
       const { id } = req.params;
-      const resultado = await projetoRepo.deletarProjeto(id);
+      
+      if (!id || id === 'undefined' || id === 'null') {
+        return res.status(400).json({ error: 'ID do projeto é obrigatório' });
+      }
+      
+      const idNumero = parseInt(id, 10);
+      if (isNaN(idNumero)) {
+        return res.status(400).json({ error: 'ID do projeto deve ser um número válido' });
+      }
+      
+      const resultado = await projetoRepo.deletarProjeto(idNumero);
       res.json(resultado);
     } catch (e) {
       console.error('Erro ao deletar projeto:', e);
@@ -323,6 +405,16 @@ function ProjetoController() {
   async function adicionarFoto(req, res) {
     try {
       const { id } = req.params;
+      
+      if (!id || id === 'undefined' || id === 'null') {
+        return res.status(400).json({ error: 'ID do projeto é obrigatório' });
+      }
+      
+      const idNumero = parseInt(id, 10);
+      if (isNaN(idNumero)) {
+        return res.status(400).json({ error: 'ID do projeto deve ser um número válido' });
+      }
+      
       const { imageBase64 } = req.body;
       if (!imageBase64 || !imageBase64.startsWith('data:image')) {
         return res.status(400).json({ error: 'Imagem inválida' });
@@ -334,7 +426,7 @@ function ProjetoController() {
         const comp = await compressImage(buf);
         const url = await uploadToS3(comp, 'projetos/secundarias');
         
-        const foto = await projetoRepo.adicionarFoto(id, url);
+        const foto = await projetoRepo.adicionarFoto(idNumero, url);
         res.status(201).json(foto);
       } catch (error) {
         console.error('Erro ao fazer upload da foto para S3:', error.message);
@@ -352,7 +444,27 @@ function ProjetoController() {
   async function deletarFoto(req, res) {
     try {
       const { id, fotoId } = req.params;
-      const resultado = await projetoRepo.deletarFoto(id, fotoId);
+      
+      if (!id || id === 'undefined' || id === 'null') {
+        return res.status(400).json({ error: 'ID do projeto é obrigatório' });
+      }
+      
+      if (!fotoId || fotoId === 'undefined' || fotoId === 'null') {
+        return res.status(400).json({ error: 'ID da foto é obrigatório' });
+      }
+      
+      const idNumero = parseInt(id, 10);
+      const fotoIdNumero = parseInt(fotoId, 10);
+      
+      if (isNaN(idNumero)) {
+        return res.status(400).json({ error: 'ID do projeto deve ser um número válido' });
+      }
+      
+      if (isNaN(fotoIdNumero)) {
+        return res.status(400).json({ error: 'ID da foto deve ser um número válido' });
+      }
+      
+      const resultado = await projetoRepo.deletarFoto(idNumero, fotoIdNumero);
       res.json(resultado);
     } catch (e) {
       console.error('Erro ao deletar foto:', e);
